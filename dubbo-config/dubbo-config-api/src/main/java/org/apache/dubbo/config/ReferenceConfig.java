@@ -179,6 +179,9 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
         dispatch(new ReferenceConfigDestroyedEvent(this));
     }
 
+    /**
+     * 开始初始化dubbo
+     */
     public synchronized void init() {
         if (initialized) {
             return;
@@ -188,9 +191,11 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
             bootstrap = DubboBootstrap.getInstance();
             bootstrap.init();
         }
-
+        //
         checkAndUpdateSubConfigs();
 
+        // 检查stub配置,远程服务后，客户端通常只剩下接口，而实现全在服务器端，
+        // 但提供方有些时候想在客户端也执行部分逻辑，那么就在服务消费者这一端提供了一个Stub
         checkStubAndLocal(interfaceClass);
         ConfigValidationUtils.checkMock(interfaceClass, this);
 
