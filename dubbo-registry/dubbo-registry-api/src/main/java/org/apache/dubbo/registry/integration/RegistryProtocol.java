@@ -379,7 +379,9 @@ public class RegistryProtocol implements Protocol {
     @Override
     @SuppressWarnings("unchecked")
     public <T> Invoker<T> refer(Class<T> type, URL url) throws RpcException {
+        // protocol改为zookeeper
         url = getRegistryUrl(url);
+        // zookeeperRegistry
         Registry registry = registryFactory.getRegistry(url);
         if (RegistryService.class.equals(type)) {
             return proxyFactory.getInvoker((T) registry, type, url);
@@ -409,12 +411,15 @@ public class RegistryProtocol implements Protocol {
         URL subscribeUrl = new URL(CONSUMER_PROTOCOL, parameters.remove(REGISTER_IP_KEY), 0, type.getName(), parameters);
         if (!ANY_VALUE.equals(url.getServiceInterface()) && url.getParameter(REGISTER_KEY, true)) {
             directory.setRegisteredConsumerUrl(getRegisteredConsumerUrl(subscribeUrl, url));
+            //ZookeeperRegistry.doRegister() 将url注册到zookeeper中
             registry.register(directory.getRegisteredConsumerUrl());
         }
         directory.buildRouterChain(subscribeUrl);
+        // ZookeeperRegistry.doSubscribe() 注册zookeeper监听url provider/configurators/routers，生成invoker
         directory.subscribe(subscribeUrl.addParameter(CATEGORY_KEY,
                 PROVIDERS_CATEGORY + "," + CONFIGURATORS_CATEGORY + "," + ROUTERS_CATEGORY));
 
+        // FailoverClusterInvoker 容错包装invoker，包括（选择invoker，负载均衡）
         Invoker invoker = cluster.join(directory);
         return invoker;
     }

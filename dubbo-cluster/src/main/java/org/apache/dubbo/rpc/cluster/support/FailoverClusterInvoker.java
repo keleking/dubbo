@@ -38,8 +38,11 @@ import static org.apache.dubbo.common.constants.CommonConstants.DEFAULT_RETRIES;
 import static org.apache.dubbo.common.constants.CommonConstants.RETRIES_KEY;
 
 /**
+ * 失败自动切换：失败默认重试2次
+ *
  * When invoke fails, log the initial error and retry other invokers (retry n times, which means at most n different invokers will be invoked)
  * Note that retry causes latency.
+ *
  * <p>
  * <a href="http://en.wikipedia.org/wiki/Failover">Failover</a>
  *
@@ -58,6 +61,7 @@ public class FailoverClusterInvoker<T> extends AbstractClusterInvoker<T> {
         List<Invoker<T>> copyInvokers = invokers;
         checkInvokers(copyInvokers, invocation);
         String methodName = RpcUtils.getMethodName(invocation);
+        // 重试次数
         int len = getUrl().getMethodParameter(methodName, RETRIES_KEY, DEFAULT_RETRIES) + 1;
         if (len <= 0) {
             len = 1;
@@ -69,10 +73,12 @@ public class FailoverClusterInvoker<T> extends AbstractClusterInvoker<T> {
         for (int i = 0; i < len; i++) {
             //Reselect before retry to avoid a change of candidate `invokers`.
             //NOTE: if `invokers` changed, then `invoked` also lose accuracy.
+            // 非首次调用
             if (i > 0) {
+                // 检查RPC服务是不是已经销毁
                 checkWhetherDestroyed();
                 copyInvokers = list(invocation);
-                // check again
+                // check again 如果消费者服务为空，则抛异常
                 checkInvokers(copyInvokers, invocation);
             }
             Invoker<T> invoker = select(loadbalance, invocation, copyInvokers, invoked);

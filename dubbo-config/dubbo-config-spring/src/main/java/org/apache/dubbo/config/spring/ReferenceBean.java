@@ -80,6 +80,8 @@ public class ReferenceBean<T> extends ReferenceConfig<T> implements FactoryBean,
     }
 
     /**
+     * 初始化dubbo bean config配置对象
+     *
      * Initializes there Dubbo's Config Beans before @Reference bean autowiring
      */
     private void prepareDubboConfigBeans() {

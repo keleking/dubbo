@@ -98,6 +98,11 @@ public abstract class AbstractConfig implements Serializable {
         return value;
     }
 
+    /**
+     * 将类名转换：例如IDubboMchUserConfig -> i-dubbo-mch-user
+     * @param cls
+     * @return
+     */
     public static String getTagName(Class<?> cls) {
         String tag = cls.getSimpleName();
         for (String suffix : SUFFIXES) {
@@ -113,6 +118,13 @@ public abstract class AbstractConfig implements Serializable {
         appendParameters(parameters, config, null);
     }
 
+    /**
+     * config所有属性填充到map中
+     *
+     * @param parameters
+     * @param config
+     * @param prefix
+     */
     @SuppressWarnings("unchecked")
     public static void appendParameters(Map<String, String> parameters, Object config, String prefix) {
         if (config == null) {
@@ -239,6 +251,12 @@ public abstract class AbstractConfig implements Serializable {
         return asyncMethodInfo;
     }
 
+    /**
+     * 根据方法名字符串获取对应的方法
+     * @param clazz
+     * @param methodName
+     * @return
+     */
     private static Method getMethodByName(Class<?> clazz, String methodName) {
         try {
             return ReflectUtils.findMethodByMethodName(clazz, methodName);
@@ -254,6 +272,14 @@ public abstract class AbstractConfig implements Serializable {
         }).collect(Collectors.toSet());
     }
 
+    /**
+     * 获取对应方法上注释Parameter的属性值
+     *
+     * @param clazz
+     * @param setter
+     * @return
+     * @throws Exception
+     */
     private static String extractPropertyName(Class<?> clazz, Method setter) throws Exception {
         String propertyName = setter.getName().substring("set".length());
         Method getter = null;
@@ -271,16 +297,35 @@ public abstract class AbstractConfig implements Serializable {
         return propertyName;
     }
 
+    /**
+     * get方法提取属性值 .分割
+     *
+     * @param name
+     * @return
+     */
     private static String calculatePropertyFromGetter(String name) {
         int i = name.startsWith("get") ? 3 : 2;
         return StringUtils.camelToSplitName(name.substring(i, i + 1).toLowerCase() + name.substring(i + 1), ".");
     }
 
+    /**
+     * get方法提取属性值
+     *
+     * @param getter
+     * @return
+     */
     private static String calculateAttributeFromGetter(String getter) {
         int i = getter.startsWith("get") ? 3 : 2;
         return getter.substring(i, i + 1).toLowerCase() + getter.substring(i + 1);
     }
 
+    /**
+     * map设置到Class c对象的setParameters中
+     *
+     * @param c
+     * @param o
+     * @param map
+     */
     private static void invokeSetParameters(Class c, Object o, Map map) {
         try {
             Method method = findMethodByMethodSignature(c, "setParameters", new String[]{Map.class.getName()});
@@ -292,6 +337,13 @@ public abstract class AbstractConfig implements Serializable {
         }
     }
 
+    /**
+     * 调用对象getParameters方法
+     *
+     * @param c
+     * @param o
+     * @return
+     */
     private static Map<String, String> invokeGetParameters(Class c, Object o) {
         try {
             Method method = findMethodByMethodSignature(c, "getParameters", null);
@@ -304,6 +356,12 @@ public abstract class AbstractConfig implements Serializable {
         return null;
     }
 
+    /**
+     * 是否getParameters方法
+     *
+     * @param method
+     * @return
+     */
     private static boolean isParametersGetter(Method method) {
         String name = method.getName();
         return ("getParameters".equals(name)
@@ -312,6 +370,12 @@ public abstract class AbstractConfig implements Serializable {
                 && method.getReturnType() == Map.class);
     }
 
+    /**
+     * 是否setParameters方法
+     *
+     * @param method
+     * @return
+     */
     private static boolean isParametersSetter(Method method) {
         return ("setParameters".equals(method.getName())
                 && Modifier.isPublic(method.getModifiers())
@@ -320,6 +384,13 @@ public abstract class AbstractConfig implements Serializable {
                 && method.getReturnType() == void.class);
     }
 
+    /**
+     * parameters中所有属性key变为prefix.key形式
+     *
+     * @param parameters
+     * @param prefix
+     * @return
+     */
     private static Map<String, String> convert(Map<String, String> parameters, String prefix) {
         if (parameters == null || parameters.isEmpty()) {
             return Collections.emptyMap();
@@ -357,6 +428,7 @@ public abstract class AbstractConfig implements Serializable {
     protected void appendAnnotation(Class<?> annotationClass, Object annotation) {
         Method[] methods = annotationClass.getMethods();
         for (Method method : methods) {
+            // 方法不是object的，返回值不为空、参数为空，public，非static
             if (method.getDeclaringClass() != Object.class
                     && method.getReturnType() != void.class
                     && method.getParameterTypes().length == 0
@@ -395,6 +467,7 @@ public abstract class AbstractConfig implements Serializable {
     /**
      * Should be called after Config was fully initialized.
      * // FIXME: this method should be completely replaced by appendParameters
+     * 将class的所有方法get的值放到map里面返回
      *
      * @return
      * @see AbstractConfig#appendParameters(Map, Object, String)

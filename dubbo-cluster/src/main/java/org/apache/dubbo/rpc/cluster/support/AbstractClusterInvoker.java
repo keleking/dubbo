@@ -165,6 +165,7 @@ public abstract class AbstractClusterInvoker<T> implements Invoker<T> {
         }
         Invoker<T> invoker = loadbalance.select(invokers, getUrl(), invocation);
 
+        // 如果选择的服务提供方，在以前的失败调用列表中，则需要重新选择
         //If the `invoker` is in the  `selected` or invoker is unavailable && availablecheck is true, reselect.
         if ((selected != null && selected.contains(invoker))
                 || (!invoker.isAvailable() && getUrl() != null && availablecheck)) {
@@ -283,6 +284,13 @@ public abstract class AbstractClusterInvoker<T> implements Invoker<T> {
     protected abstract Result doInvoke(Invocation invocation, List<Invoker<T>> invokers,
                                        LoadBalance loadbalance) throws RpcException;
 
+    /**
+     * 根据请求，获取所有可用的invoker，会执行router路由选择
+     *
+     * @param invocation
+     * @return
+     * @throws RpcException
+     */
     protected List<Invoker<T>> list(Invocation invocation) throws RpcException {
         return directory.list(invocation);
     }

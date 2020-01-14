@@ -59,6 +59,13 @@ public class Exchangers {
         return bind(URL.valueOf(url), handler);
     }
 
+    /**
+     * 建立连接 设置序列化
+     * @param url
+     * @param handler
+     * @return
+     * @throws RemotingException
+     */
     public static ExchangeServer bind(URL url, ExchangeHandler handler) throws RemotingException {
         if (url == null) {
             throw new IllegalArgumentException("url == null");

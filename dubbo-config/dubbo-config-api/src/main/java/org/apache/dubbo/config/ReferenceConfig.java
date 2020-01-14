@@ -194,7 +194,7 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
         //
         checkAndUpdateSubConfigs();
 
-        // 检查stub配置,远程服务后，客户端通常只剩下接口，而实现全在服务器端，
+        // 检查stub配置,远程服务后，客户端通常只剩下接口，而实现全在服务器端
         // 但提供方有些时候想在客户端也执行部分逻辑，那么就在服务消费者这一端提供了一个Stub
         checkStubAndLocal(interfaceClass);
         ConfigValidationUtils.checkMock(interfaceClass, this);
@@ -202,7 +202,10 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
         Map<String, String> map = new HashMap<String, String>();
         map.put(SIDE_KEY, CONSUMER_SIDE);
 
+        // 添加版本、时间戳参数
         ReferenceConfigBase.appendRuntimeParameters(map);
+
+        // 非泛化调用
         if (!ProtocolUtils.isGeneric(generic)) {
             String revision = Version.getVersion(interfaceClass, version);
             if (revision != null && revision.length() > 0) {
@@ -245,6 +248,7 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
             }
         }
 
+        // 获取本机ip地址
         String hostToRegistry = ConfigUtils.getSystemProperty(DUBBO_IP_TO_REGISTRY);
         if (StringUtils.isEmpty(hostToRegistry)) {
             hostToRegistry = NetUtils.getLocalHost();
@@ -255,6 +259,7 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
 
         serviceMetadata.getAttachments().putAll(map);
 
+        //创建代理
         ref = createProxy(map);
 
         serviceMetadata.setTarget(ref);
@@ -315,6 +320,7 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
             }
 
             if (urls.size() == 1) {
+                // 调用RegistryProtocol
                 invoker = REF_PROTOCOL.refer(interfaceClass, urls.get(0));
             } else {
                 List<Invoker<?>> invokers = new ArrayList<Invoker<?>>();
@@ -361,7 +367,19 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
             URL consumerURL = new URL(CONSUMER_PROTOCOL, map.remove(REGISTER_IP_KEY), 0, map.get(INTERFACE_KEY), map);
             metadataService.publishServiceDefinition(consumerURL);
         }
-        // create service proxy
+
+        /**
+         * 动态代理，默认：javassist。其中会组装RcpInvocation进行调用
+         *
+         * 动态代理InvokerInvocationHandler.invoke() -> 容错FailoverClusterInvoker.invoke()
+         * -> protocalListener.invoke() -> protocalFilter.invoke() -> InvokerDelegate.invoke()
+         * -> AsyncToSyncInvoker.invoke -> DubboInvoker.invoke() -> ExchangeClient.send()
+         * -> HeaderExchangeClient.send() -> NettyClient.send() -> DecodeHandler.send() ->
+         * HeaderExchangeHandler.send() -> ExchangeHandlerAdapter.send()
+         *
+         * 接受：NettyHandler.messageReceived()->MultiMessageHandler.received()->HeartbeatHandler.received()
+         * -> 往外扩展
+         */
         return (T) PROXY_FACTORY.getProxy(invoker);
     }
 

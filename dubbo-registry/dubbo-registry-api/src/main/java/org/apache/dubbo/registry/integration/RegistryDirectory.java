@@ -434,6 +434,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
                         enabled = url.getParameter(ENABLED_KEY, true);
                     }
                     if (enabled) {
+                        // 这里会生成dubboProtocol,被ProtocolFilterWrapper和ProtocolListenerWrapper包装
                         invoker = new InvokerDelegate<>(protocol.refer(serviceType, url), url, providerUrl);
                     }
                 } catch (Throwable t) {
@@ -572,6 +573,11 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
         }
     }
 
+    /**
+     *
+     * @param invocation
+     * @return
+     */
     @Override
     public List<Invoker<T>> doList(Invocation invocation) {
         if (forbidden) {
@@ -588,6 +594,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
 
         List<Invoker<T>> invokers = null;
         try {
+            // 路由选择
             // Get invokers from cache, only runtime routers will be executed.
             invokers = routerChain.route(getConsumerUrl(), invocation);
         } catch (Throwable t) {
